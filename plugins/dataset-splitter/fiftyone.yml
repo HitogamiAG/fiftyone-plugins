@@ -1,0 +1,11 @@
+name: "HitogamiAG/dataset-splitter"
+type: plugin
+author: HitogamiAG
+version: 1.0.0
+url: https://github.com/HitogamiAG/fiftyone-plugins/tree/main/plugins/dataset-splitter
+license: Apache 2.0
+description: Split your dataset into train, validation and test sets
+fiftyone:
+  version: "*"
+operators:
+  - split_by_hash

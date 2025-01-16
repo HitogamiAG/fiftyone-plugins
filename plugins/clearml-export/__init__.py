@@ -12,7 +12,6 @@ EXPORT_FORMATS = [
     fodt.FiftyOneImageClassificationDataset,
     fodt.ImageClassificationDirectoryTree,
     fodt.TFImageClassificationDataset,
-    
     fodt.FiftyOneImageDetectionDataset,
     fodt.FiftyOneTemporalDetectionDataset,
     fodt.COCODetectionDataset,
@@ -27,6 +26,10 @@ EXPORT_FORMATS = [
     fodt.FiftyOneDataset
 ]
 EXPORT_FORMATS_DICT = {export_format.__name__ : export_format for export_format in EXPORT_FORMATS}
+
+SUPPORT_SPLITS = [
+    fodt.YOLOv5Dataset
+]
 
 class ExportToClearml(foo.Operator):
     
@@ -73,15 +76,29 @@ class ExportToClearml(foo.Operator):
             dataset = ctx.dataset
             label_field = ctx.params['label_field']
             export_format = EXPORT_FORMATS_DICT[ctx.params['export_format']]
+            export_splits = ctx.params.get('export_splits', None)
             
             if ctx.params.get("use_view", False):
                 dataset = ctx.view
             
-            dataset.export(
-                export_dir=temp_dir,
-                dataset_type=export_format,
-                label_field=label_field)
-            
+            if export_splits is None:
+                dataset.export(
+                    export_dir=temp_dir,
+                    dataset_type=export_format,
+                    label_field=label_field)
+            else:
+                classes = get_classes(dataset, label_field)
+                export_splits = export_splits.split(',')
+                
+                for export_split in export_splits:
+                    split_view = dataset.match_tags(export_split)
+                    split_view.export(
+                        export_dir=temp_dir,
+                        dataset_type=export_format,
+                        label_field=label_field,
+                        split=export_split,
+                        classes = classes)
+                
             #--- Upload to ClearML
             dataset_name = ctx.params['dataset_name']
             dataset_project = ctx.params['project_name']
@@ -100,7 +117,7 @@ class ExportToClearml(foo.Operator):
             dataset.upload()
             dataset.finalize()
             
-            return {}
+            return {"status" : "Dataset uploaded!"}
 
     def resolve_output(self, ctx):
         outputs = types.Object()
@@ -163,7 +180,7 @@ def choose_dataset_version(inputs, ctx):
     version_choices = types.AutocompleteView(space=6)
     for version in versions:
         version_choices.add_choice(version['id'], label=version['runtime']['version'])
-    inputs.enum("version_id", values=version_choices.values(), required=True, label="Parent version name: ", view=version_choices)
+    inputs.enum("version_id", values=version_choices.values(), label="Parent version name (choose or leave empty): ", view=version_choices)
     
     return ctx.params.get('version_id', None)
 
@@ -186,8 +203,7 @@ def parse_clearml_inputs(inputs, ctx):
                 dataset_name = datasets_id_name_mapping.get(chosen_dataset_id, None)
                 
                 if chosen_dataset_id is not None:
-                    chosen_parent_dataset_version_id = choose_dataset_version(inputs, ctx)
-                    parent_version_id = chosen_parent_dataset_version_id
+                    parent_version_id = choose_dataset_version(inputs, ctx)
                     
                     inputs.str("dataset_version", label="Name of new dataset version:", required=True)
                     
@@ -238,6 +254,20 @@ def choose_export_format(inputs, ctx):
     
     return ctx.params.get("export_format", None)
 
+def choose_splits_to_export(inputs, ctx):
+    inputs.str("export_splits", label="Splits to export (f.e. 'train,val,test') (default: 'val'): ")
+    export_splits = ctx.params.get("splits", None)
+    
+    return export_splits
+
+def get_classes(dataset, label_field):
+    classes = set()
+    for sample in dataset:
+        for instance in sample[label_field].to_dict().values()[1]:
+            classes.update(instance.to_dict()['label'])
+    
+    return list(classes)
+
 def parse_fiftyone_inputs(inputs, ctx):
     
     if ctx.has_custom_view:
@@ -247,6 +277,12 @@ def parse_fiftyone_inputs(inputs, ctx):
     
     if label_field is not None:
         export_format = choose_export_format(inputs, ctx)
+        
+        if export_format is not None and EXPORT_FORMATS_DICT[export_format] in SUPPORT_SPLITS:
+            export_splits = choose_splits_to_export(inputs, ctx)
+        else:
+            export_splits = None
+        
     else:
         export_format = None
         

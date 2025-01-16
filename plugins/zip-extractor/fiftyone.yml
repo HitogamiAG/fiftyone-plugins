@@ -1,0 +1,11 @@
+name: "HitogamiAG/zip-extractor"
+type: plugin
+author: HitogamiAG
+version: 1.0.0
+url: https://github.com/HitogamiAG/fiftyone-plugins/tree/main/plugins/zip-extractor
+license: Apache 2.0
+description: Upload .zip files and extract on filesystem
+fiftyone:
+  version: "*"
+operators:
+  - extract_zip
