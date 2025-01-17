@@ -1,11 +1,13 @@
 import tempfile
+import requests
 from clearml import Dataset
+from clearml.backend_api.session.client import APIClient
+from clearml.backend_api.session import Session
+
 import fiftyone as fo
 import fiftyone.operators as foo
 import fiftyone.operators.types as types
 import fiftyone.types.dataset_types as fodt
-
-from .src.clearml_utils import (create_client, get_projects, get_datasets_by_project_id, get_versions_by_dataset_id)
 
 EXPORT_FORMATS = [
     fodt.ImageDirectory,
@@ -287,3 +289,31 @@ def parse_fiftyone_inputs(inputs, ctx):
         export_format = None
         
     return all([label_field is not None, export_format is not None])
+
+#--- CLEARML UTIL FUNCTIONS
+
+def create_client(api_url, api_key, secret_key):
+    session = Session(api_key=api_key, secret_key=secret_key, host=api_url)
+    return APIClient(session=session)
+
+def get_projects(api_url, api_key, secret_key):
+    projects = requests.get(f'{api_url}projects.get_all',
+                            auth=(api_key, secret_key)).json()['data']['projects']
+    
+    return projects
+
+def get_datasets_by_project_id(api_url, api_key, secret_key, project_id):
+    datasets = requests.get(f'{api_url}projects.get_all_ex', data={'id' : [project_id], 'include_stats' : True, 'search_hidden' : True},
+                            auth=(api_key, secret_key)).json()['data']['projects'][-1]['sub_projects']
+    
+    datasets = [dataset for dataset in datasets if not dataset['name'].endswith('/.datasets')]
+    return datasets
+
+def get_versions_by_dataset_id(api_url, api_key, secret_key, dataset_id):
+    versions = requests.post(f'{api_url}tasks.get_all_ex', data={"project":[dataset_id],
+                                                                "system_tags":["dataset"],
+                                                                "include_subprojects":False,
+                                                                "search_hidden":True,
+                                                                "only_fields":["id","runtime.version"]},
+                            auth=(api_key, secret_key)).json()['data']['tasks']
+    return versions
