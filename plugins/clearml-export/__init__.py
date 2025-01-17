@@ -263,12 +263,16 @@ def choose_splits_to_export(inputs, ctx):
     return export_splits
 
 def get_classes(dataset, label_field):
-    classes = set()
+    classes = []
     for sample in dataset:
-        for instance in sample[label_field].to_dict().values()[1]:
-            classes.update(instance.to_dict()['label'])
-    
-    return list(classes)
+        if label_field in sample and sample[label_field] is not None:
+            sample_values = sample[label_field].to_dict().values()
+            if len(sample_values) > 1:
+                for instance in sample_values[1]:
+                    if instance is not None and 'label' in instance.to_dict():
+                        classes.append(instance.to_dict()['label'])
+        
+    return list(set(classes))
 
 def parse_fiftyone_inputs(inputs, ctx):
     
