@@ -1,8 +1,14 @@
 ![alt text](assets/image.png)
 
-Versionize data using Fiftyone and ClearML
+Collection of plugins to integrate FiftyOne and ClearML
 
-## Installation
+| Plugin | Name | Desc | Has additional requirements |
+| - | - | - | - |
+| Clearml Export | clearml-export | Export from FiftyOne and create new datasets and dataset versions in ClearML | + |
+| Dataset Splitter | dataset-splitter | Attach split tags (e.g. train,val) to images based on image hash. Tags can be used during export to ClearML (currently only YOLOv5 dataset format) | |
+| Zip extractor | zip-extractor | Extract images from zip to host machine to import images in FiftyOne (currently with poor optimization) | |
+
+## Plugin installation
 
 ### 1. Download plugin
 

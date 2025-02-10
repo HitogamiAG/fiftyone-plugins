@@ -113,6 +113,7 @@ class ExportToClearml(foo.Operator):
                 parent_datasets=parent_version_id,
                 dataset_version=dataset_version_name,
                 description='Exported from FiftyOne',
+                output_uri=ctx.secrets.get('FIFTYONE_CLEARML_FILES_STORAGE', 'files_server')
             )
             
             dataset.add_files(path=temp_dir)
