@@ -1,0 +1,17 @@
+name: "HitogamiAG/minio-importer"
+type: plugin
+author: HitogamiAG
+version: 1.0.0
+url: https://github.com/HitogamiAG/fiftyone-plugins/tree/main/plugins/minio-importer
+license: Apache 2.0
+description: Import images and folders from S3 Storage to FiftyOne
+fiftyone:
+  version: "*"
+operators:
+  - import_from_minio
+secrets:
+  - FIFTYONE_MINIO_SERVER_ADDRESS
+  - FIFTYONE_MINIO_ACCESS_KEY
+  - FIFTYONE_MINIO_SECRET_KEY
+  - FIFTYONE_MINIO_SECURE
+  - FIFTYONE_MINIO_VERIFY
